@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<firstdoc>
+	<text>this is first document to read</text>
+</firstdoc>
+
+<seconddoc>
+	<text>this is another document to read</text>
+</seconddoc>
+
+<doc3>
+	<seconddoc2>
+		<text>this is third document to read</text>
+test2</seconddoc2>
+</doc3>
+
+<?xml version="1.0" encoding="utf-8"?>
+<doc4><seconddoc3><text>this 4th document to read</text></seconddoc3></doc4>

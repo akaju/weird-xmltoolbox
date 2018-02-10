@@ -39,27 +39,32 @@ public class TestXMLEventReading {
 				int evType = xmlEvent.getEventType();
 
 				String eventNameOut = (evType <= EVENT_NAMES.length ? EVENT_NAMES[evType] + " ": "");
+				System.out.println(eventNameOut);
 				String locStr = "line: " + loc.getLineNumber() + ", col: " + loc.getColumnNumber() + ", char: " + loc.getCharacterOffset();
 				if(xmlEvent instanceof StartElement) {
 					StartElement stElem = (StartElement) xmlEvent;
-					System.out.print(eventNameOut + stElem.getName().getLocalPart());
+					System.out.print(stElem.getName().getLocalPart());
 					System.out.println(" -- " + elementLevel + " -- " + sr.getOffset() + " / " + sr.getMarkOffset() + ", " + locStr);
 					elementLevel += 1;
 					firstElementSeen = true;
 				} else if(xmlEvent instanceof EndElement) {
 					EndElement endElem = (EndElement) xmlEvent;
-					System.out.print(eventNameOut + endElem.getName().getLocalPart());
+					System.out.print(endElem.getName().getLocalPart());
 					System.out.println(" -- " + elementLevel + " -- " + sr.getOffset() + " / " + sr.getMarkOffset() + ", " + locStr);
 					elementLevel -= 1;
 				} else if(xmlEvent instanceof StartDocument) {
-					System.out.println(eventNameOut + ", " + locStr);
+					System.out.println(", " + locStr);
 				} else if(xmlEvent instanceof EndDocument) {
-					System.out.println(eventNameOut + ", " + locStr);
-				} 
+					System.out.println(", " + locStr);
+				} else {
+					System.out.println();
+				}
 
 				if(firstElementSeen && elementLevel <= 0) {
 					System.out.println("=== END DOCUMENT ===");
 					int charOffset = loc.getCharacterOffset();
+					int line = loc.getLineNumber();
+					int col = loc.getColumnNumber();
 					System.out.println("=== char offset: " + charOffset + ", stream offset: " 
 							+ sr.getOffset() + ", stream mark: " + sr.getMarkOffset() + " ===");
 					sr.resetTo(charOffset);
