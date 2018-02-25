@@ -22,13 +22,11 @@ public class ReaderWrapper extends ProxyReader {
 
 	@Override
 	protected void afterRead(int n) throws IOException {
-		//System.out.println(n + " characters read, " + " offset: " + offset + ", new offset: " + (offset + n) + ", mark: " + markOffset);
 		offset += n;
 	}
 
 	@Override
 	protected void beforeRead(int n) throws IOException {
-		//System.out.println("request chars: " + n + ", offset: " + offset + ", mark: " + markOffset + ", substream: " + substreamOffset);
 		markOffset = offset;
 		if(in.markSupported())
 			in.mark(n);
@@ -43,9 +41,6 @@ public class ReaderWrapper extends ProxyReader {
 		}
 		
 		long shift = newSubstreamOffset - markOffset;
-		//System.out.println("reset to before: " + newOffset + ", offset: " + offset + ", mark: " + markOffset + ", substream: " + substreamOffset +
-		//		", new substream: " + newSubstreamOffset + ", shift: " + shift);
-		
 		in.reset();
 		in.skip(shift);
 		offset = newSubstreamOffset;
@@ -53,9 +48,6 @@ public class ReaderWrapper extends ProxyReader {
 		substreamOffset = newSubstreamOffset;
 		if(in.markSupported())
 			in.mark(10240);
-
-		//System.out.println("reset to after: " + newOffset + ", offset: " + offset + ", mark: " + markOffset + ", substream: " + substreamOffset +
-		//		", new substream: " + newSubstreamOffset + ", shift: " + shift);
 		
 		return true;
 	}
@@ -84,9 +76,6 @@ public class ReaderWrapper extends ProxyReader {
 			offset += 1;
 			markOffset += 1;
 		}
-		
-		//System.out.println("reset tochar after: " + newOffset + ", offset: " + offset + ", mark: " + markOffset + ", substream: " + substreamOffset);
-
 		return !eof;
 	}
 	
@@ -98,16 +87,8 @@ public class ReaderWrapper extends ProxyReader {
 		return markOffset;
 	}
 
-	@Override
-	public synchronized void mark(int arg0) throws IOException {
-		
-		super.mark(arg0);
-	}
-
-	@Override
-	public synchronized void reset() throws IOException {
-		// TODO Auto-generated method stub
-		super.reset();
+	public long getSubstreamOffset() {
+		return substreamOffset;
 	}
 
 }

@@ -1,11 +1,16 @@
 package ee.pri.kaju.xmltools;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Iterator;
 
 import javax.xml.stream.Location;
 import javax.xml.stream.XMLEventFactory;
@@ -33,7 +38,7 @@ import org.codehaus.stax2.evt.XMLEventFactory2;
  * @author Andres Kaju
  *
  */
-public class NonXMLStreamSplitter {
+public class NonXMLStreamIterator implements Iterator<InputStream> {
 	
 	InputStream inputStream = null;
 	
@@ -55,10 +60,72 @@ public class NonXMLStreamSplitter {
 	
 	private XMLEventListener eventListener = null;
 	
-	public void extractAllDocuments() throws XMLStreamException, IOException {
-		while(!eof) {
+	/** Substream length. */
+	private long substreamLength = 0L;
+
+	/** Tracks substream offset in underlying stream. */
+	//private long substreamOffset = 0L;
+	
+	/** Temporary file, where substream is stored. */
+	private File tmpFile = null;
+	
+	/** Keep substream files after iterator disposal. */
+	private boolean keepSubstreamFiles = false;
+	
+	private boolean deletePreviousTempFile = true;
+	
+	public NonXMLStreamIterator(InputStream inputStream) {
+		this.inputStream = inputStream;
+		destinationFactory = new DestinationFactory() {
+			@Override
+			public OutputStream getOutputStream() {
+				OutputStream ostream = null;
+				if(!keepSubstreamFiles && deletePreviousTempFile && tmpFile != null && tmpFile.isFile())
+					tmpFile.delete();
+				tmpFile = null;
+				try {
+					tmpFile = File.createTempFile("nxm", ".xml");
+					ostream = new FileOutputStream(tmpFile);
+					if(!keepSubstreamFiles)
+						tmpFile.deleteOnExit();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return ostream;
+			}
+		};
+	}
+
+	@Override
+	public boolean hasNext() {
+		if(!keepSubstreamFiles && deletePreviousTempFile && tmpFile != null && tmpFile.isFile())
+			tmpFile.delete();
+		return inputStream != null && !eof;
+	}
+
+	@Override
+	public InputStream next() {
+		InputStream is = null;
+		try {
 			extractNextDocument();
+			if(tmpFile != null) {
+				is = new FileInputStream(tmpFile);
+			}
+		} catch (XMLStreamException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+		return is;
+	}
+
+	@Override
+	public void remove() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	public void extractNextDocument() throws XMLStreamException, IOException {
@@ -70,21 +137,10 @@ public class NonXMLStreamSplitter {
 		
 		if(bufferedReader == null) {
 			bufferedReader = new BufferedReader(new InputStreamReader(inputStream), bufferLength);
-			//System.out.println("new buffered reader created.");
 		}
 
-		if(reader == null) {
-			reader = new ReaderWrapper(bufferedReader);
-			//System.out.println("new reader wrapper created.");
-		}
-		
-		/*
-		bufferedReader.mark(1000);
-		String line = bufferedReader.readLine();
-		if(line != null)
-			System.out.println("next line: " + line);
-		bufferedReader.reset();
-		*/
+		reader = new ReaderWrapper(bufferedReader);
+		//substreamOffset = reader.getSubstreamOffset();
 		
 		XMLEventReader eventReader = inputFactory.createXMLEventReader(reader);
 		while(!xmlDocRead && eventReader.hasNext()) {
@@ -125,6 +181,7 @@ public class NonXMLStreamSplitter {
 					eventWriter.close();
 					if(writer != null) {
 						writer.flush();
+						writer.close();
 						writer = null;
 					}
 					eventWriter = null;
@@ -132,9 +189,10 @@ public class NonXMLStreamSplitter {
 				int charOffset = loc.getCharacterOffset();
 				boolean resetResult = reader.resetTo(charOffset + elemTagLen, '<');
 
+				substreamLength = charOffset + elemTagLen + 2;
+				
 				eof = !resetResult;
-				if(eof)
-					break;
+				//if(eof) break;
 			}
 		}
 		eof = eof || !eventReader.hasNext();
@@ -154,14 +212,6 @@ public class NonXMLStreamSplitter {
 
 	public void setInputStream(InputStream inputStream) {
 		this.inputStream = inputStream;
-	}
-
-	public DestinationFactory getDestinationFactory() {
-		return destinationFactory;
-	}
-
-	public void setDestinationFactory(DestinationFactory destinationFactory) {
-		this.destinationFactory = destinationFactory;
 	}
 
 	public XMLInputFactory getInputFactory() {
@@ -198,5 +248,29 @@ public class NonXMLStreamSplitter {
 
 	public void setEventListener(XMLEventListener eventListener) {
 		this.eventListener = eventListener;
+	}
+
+	public long getSubstreamLength() {
+		return substreamLength;
+	}
+
+	public boolean isDeletePreviousTempFile() {
+		return deletePreviousTempFile;
+	}
+
+	public void setDeletePreviousTempFile(boolean deletePreviousTempFile) {
+		this.deletePreviousTempFile = deletePreviousTempFile;
+	}
+
+	public boolean isKeepSubstreamFiles() {
+		return keepSubstreamFiles;
+	}
+
+	public void setKeepSubstreamFiles(boolean keepSubstreamFiles) {
+		this.keepSubstreamFiles = keepSubstreamFiles;
+	}
+
+	public File getTmpFile() {
+		return tmpFile;
 	}
 }
